@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: fct_prices
+    description: "Витрина данных с ежедневными ценами и скользящим средним за 7 дней"
+    columns:
+      - name: id
+        tests:
+          - not_null
+          
+      - name: report_date
+        tests:
+          - not_null
+          
+      - name: market_data__current_price__usd
+        description: "Цена закрытия в USD"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+
+      - name: price_moving_avg_7d
+        description: "Скользящая средняя цена за 7 дней"
+        tests:
+          - not_null:
+              severity: warn  # Если пусто — только предупредить (может быть в начале истории)
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"

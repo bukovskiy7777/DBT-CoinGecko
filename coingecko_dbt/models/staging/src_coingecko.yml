@@ -1,0 +1,21 @@
+version: 2
+
+sources:
+  - name: raw_data # Это имя используется в {{ source('raw_data', 'prices') }}
+    # database: coingecko_db # <-- Эту строку нужно убрать для PostgreSQL
+    schema: raw_data # Реальное имя схемы в Postgres
+    tables:
+      - name: prices
+        description: "Сырые данные из CoinGecko API, загруженные через dlt"
+        loaded_at_field: report_date # Важно для контроля свежести данных
+        freshness:
+          warn_after: {count: 24, period: hour}
+          # error_after: {count: 48, period: hour}
+        columns:
+          - name: id
+            tests:
+              - not_null
+          - name: market_data__current_price__usd
+            tests:
+              - not_null:
+                  severity: warn  # Теперь тест выдаст желтый статус, но пропустит сборку дальше

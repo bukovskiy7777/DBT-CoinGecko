@@ -1,0 +1,15 @@
+# params.yml
+coingecko:
+  coins:
+    - bitcoin
+    - ethereum
+    - ripple
+    - stellar
+    - solana
+    - cardano
+    - arbitrum
+    - filecoin
+    - starknet
+  dlt:
+    dataset_name: "raw_data" # shema for saving data from coingecko api
+    table_name: "prices"
