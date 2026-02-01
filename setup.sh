@@ -27,6 +27,9 @@ echo "--- Установка дополнительных утилит для db
 # Это нужно для работы расширенных тестов, которые мы обсуждали
 pip install dbt-utils dbt-expectations
 
+echo "--- Установка MLflow, xgboost и сопутствующих библиотек ---"
+pip install mlflow pandas xgboost scikit-learn seaborn
+
 echo "--- Проверка установки ---"
 dbt --version
 airflow version

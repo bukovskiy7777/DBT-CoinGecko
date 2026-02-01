@@ -22,6 +22,7 @@ profile_config = ProfileConfig(
     )
 )
 
+
 def run_ingestion_task(**context):
     from scripts.load_coingecko import run_load_to_postgres
     # Вычисляем дату за "вчера" относительно логической даты запуска
@@ -43,6 +44,16 @@ def run_ingestion_task(**context):
     db_conn = BaseHook.get_connection("postgres_ubuntu")
     creds = f"postgresql://{db_conn.login}:{db_conn.password}@{db_conn.host}:{db_conn.port}/{db_conn.schema}"
     run_load_to_postgres(target_date, creds, api_key, coins, dataset_name, table_name)
+
+
+def price_direction_model_train(ds, **context):        
+    from scripts.train_model_price_changes import train_crypto_model
+    from airflow.hooks.base import BaseHook
+
+    db_conn = BaseHook.get_connection("postgres_ubuntu")
+    creds = f"postgresql://{db_conn.login}:{db_conn.password}@{db_conn.host}:{db_conn.port}/{db_conn.schema}"
+    
+    train_crypto_model(creds, "http://localhost:5000")
 
 
 with DAG(
@@ -88,4 +99,10 @@ with DAG(
         ), 
     )
 
-    ingest_data >> dbt_tg
+    # 3. Price direction ML model train
+    train_ml_model = PythonOperator(
+        task_id='price_direction_model_train',
+        python_callable=price_direction_model_train
+    )
+
+    ingest_data >> dbt_tg >> train_ml_model

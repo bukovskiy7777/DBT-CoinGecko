@@ -1,6 +1,6 @@
-# 🚀 Crypto Analytics Pipeline (dlt + dbt + Airflow + Postgres)
+# 🚀 Crypto Analytics Pipeline (dlt + dbt + Airflow + Cosmos + Postgres + MLflow + XGBoost)
 
-An end-to-end **ELT pipeline** designed to ingest, transform, and analyze cryptocurrency market data. This project demonstrates production-grade data engineering practices, including incremental loading, data quality testing, and workflow orchestration.
+An end-to-end **ELT & MLOps pipeline** designed to ingest, transform, and analyze cryptocurrency market data, followed by automated daily model retraining. This project demonstrates production-grade data engineering practices, including incremental loading, data quality testing, workflow orchestration, and model performance tracking.
 
 ---
 
@@ -12,6 +12,10 @@ The pipeline follows the Modern Data Stack architecture:
 3.  **Transformation (T):** **dbt Core** handles data modeling across multiple layers.
 4.  **Orchestration:** **Apache Airflow** schedules and monitors the entire workflow.
 5.  **Integration:** **Astronomer Cosmos** maps dbt models directly into the Airflow DAG for granular task monitoring.
+6.  **MLOps:** Automated retraining of an **XGBoost** binary classifier to predict price movement direction, with metadata tracked in **MLflow**.
+
+**Airflow DAG Structure**
+<img width="1154" height="221" alt="data_pipeline-graph" src="https://github.com/user-attachments/assets/19ba39cb-04fe-4c20-b34c-fc3c9a525eec" />
 
 ---
 
@@ -22,6 +26,7 @@ The pipeline follows the Modern Data Stack architecture:
 * **Data Ingestion:** `dlt` (Data Load Tool)
 * **Transformation:** `dbt-core` (Postgres adapter)
 * **Database:** PostgreSQL
+* **ML Stack:** XGBoost, Scikit-learn, MLflow
 * **DAG Visualization:** Astronomer Cosmos
 * **Environment:** WSL2 (Ubuntu 22.04)
 
@@ -53,16 +58,17 @@ Data integrity is enforced via **dbt tests**:
 .
 ├── dags/
 │   ├── scripts/
-│   │   └── load_coingecko.py  # dlt ingestion script
+│   │   ├── load_coingecko.py  # dlt ingestion logic
+│   │   └── train_model.py     # ML training & MLflow logging
 │   └── data_pipeline.py       # Airflow DAG using Cosmos
 ├── coingecko_dbt/             # dbt Project
 │   ├── models/
 │   │   ├── staging/           # stg_prices.sql (Views)
-│   │   └── marts/             # fct_prices.sql (Incremental)
+│   │   └── marts/             # fct_prices.sql (Incremental) - Business logic & ML features
 │   ├── packages.yml           # packages need to install
-│   └── dbt_project.yml
+│   └── dbt_project.yml        # dbt configuration
 ├── coingecko_venv/            # Python virtual environment
-├── params.yml                 # DAG ingestion params
+├── params.yml                 # Static config (coins, table names)
 ├── setup.sh                   # Environment setup script
 └── README.md
 
@@ -70,22 +76,39 @@ Data integrity is enforced via **dbt tests**:
 
 ---
 
+## 📊 Machine Learning & MLOps
+
+After the dbt transformations are complete, the pipeline triggers an ML task that performs the following:
+
+* **Model:** XGBoost Classifier (Binary Classification).
+* **Target:** Predicts if the price will go UP (1) or DOWN (0) for the next period.
+* **Tracking (MLflow):** * **Parameters:** `n_estimators`, `max_depth`, `learning_rate` (optimized via GridSearchCV).
+    * **Metrics:** Accuracy, Precision, Recall, and F1-Score.
+    * **Artifacts:** Model binary, Feature Importance plot, and Confusion Matrix.
+
+### Model Analysis
+| Feature Importance | Confusion Matrix |
+| :---: | :---: |
+| <img width="640" height="480" alt="feature_importance_price_direction" src="https://github.com/user-attachments/assets/9a811b4c-5908-4dbc-875b-7ce86952f849" /> | <img width="800" height="600" alt="confusion_matrix_price_direction" src="https://github.com/user-attachments/assets/1ab7e5a0-c74a-47c1-bad2-49a4162c2e72" /> |
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
-WSL2 with Ubuntu 22.04
+* WSL2 with Ubuntu 22.04
 
-PostgreSQL installed and running
+* PostgreSQL installed and running
 
-CoinGecko Demo API Key
+* CoinGecko Demo API Key
 
 ### Installation
 1. Clone the repository:
 
 ```text
 Bash
-git clone [https://github.com/yourusername/crypto-analytics-pipeline.git](https://github.com/yourusername/crypto-analytics-pipeline.git)
-cd crypto-analytics-pipeline
+git clone https://github.com/bukovskiy7777/DBT-CoinGecko.git
+cd DBT-CoinGecko
 ```
 
 2. Run the setup script to create a virtual environment and install dependencies:
@@ -107,11 +130,20 @@ Bash
 airflow standalone
 ```
 
+Set `coingecko_project_dir` Variable in Airflow UI.
+
 5. Install DBT deps:
 ```text
 Bash
+dbt build
 cd coingecko_dbt
 dbt deps
+```
+
+6. Run MLflow:
+```text
+Bash
+mlflow ui --port 5000
 ```
 
 ---
